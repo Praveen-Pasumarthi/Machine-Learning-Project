@@ -7,38 +7,12 @@ def fetch_movie_data(movie_name, api_key):
     response = requests.get(url)
     return response.json()
 
-# Mock function to suggest similar movies based on genre and language
-def suggest_similar_movies(genre, language):
-    # This is a placeholder. In practice, you might pull this from a dataset.
-    similar_movies = {
-        "Action": {
-            "English": ["Die Hard", "Mad Max: Fury Road", "John Wick"],
-            "Hindi": ["Dhoom", "Baaghi"],
-            "Telugu": ["Magadheera", "Arjun Suravaram"]
-        },
-        "Comedy": {
-            "English": ["Superbad", "The Hangover", "Step Brothers"],
-            "Hindi": ["3 Idiots", "Chhichhore"],
-            "Telugu": ["Eega", "Dookudu"]
-        },
-        "Drama": {
-            "English": ["The Shawshank Redemption", "Forrest Gump", "The Godfather"],
-            "Hindi": ["Gully Boy", "Queen"],
-            "Telugu": ["Ninnu Kori", "Arjun Reddy"]
-        },
-        "Horror": {
-            "English": ["Get Out", "A Quiet Place", "The Conjuring"],
-            "Hindi": ["Bhool Bhulaiyaa", "Raaz"],
-            "Telugu": ["Chandamama Kathalu", "Gruham"]
-        },
-        "Romance": {
-            "English": ["The Notebook", "Titanic", "Pride & Prejudice"],
-            "Hindi": ["Kabir Singh", "Pyaar Ka Punchnama"],
-            "Telugu": ["Geetha Govindam", "Fidaa"]
-        },
-    }
-    # Return recommendations for the specified genre and language
-    return similar_movies.get(genre, {}).get(language, [])
+# Function to search movies by genre and language
+def search_movies(genre, language, api_key):
+    # OMDb API does not have a direct way to filter by language, so we can search all movies by genre and then filter manually.
+    url = f"http://www.omdbapi.com/?s={genre}&apikey={api_key}"
+    response = requests.get(url)
+    return response.json()
 
 # Streamlit app
 st.title('Movie Recommendation System')
@@ -46,6 +20,10 @@ st.title('Movie Recommendation System')
 # User input
 movie_name = st.text_input("Enter your favorite movie:")
 api_key = '45dacc56'  # Your OMDb API key
+
+# Language selection
+language_options = ['English', 'Hindi', 'Telugu']
+selected_language = st.selectbox("Select Language:", language_options)
 
 if st.button('Get Recommendations'):
     if movie_name:
@@ -60,25 +38,28 @@ if st.button('Get Recommendations'):
             st.write(f"**Rating:** {movie_data['imdbRating']}")
             st.write(f"**Language:** {movie_data['Language']}")
 
-            # Get the first genre and language for recommendations
+            # Get genres and prepare for recommendations
             genres = movie_data['Genre'].split(', ')
-            language = movie_data['Language'].split(', ')[0].strip()  # Take the first language
+            recommended_movies = set()  # Using a set to avoid duplicates
 
-            recommended_movies = []
-
+            # Search for movies based on genre and selected language
             for genre in genres:
                 genre = genre.strip()  # Clean genre string
-                recommended_movies.extend(suggest_similar_movies(genre, language))
+                search_results = search_movies(genre, selected_language, api_key)
 
-            # Display recommendations, ensuring unique movie titles
-            recommended_movies = list(set(recommended_movies))  # Remove duplicates
+                if search_results['Response'] == 'True':
+                    for movie in search_results.get('Search', []):
+                        # Check if the movie language matches the selected language
+                        if selected_language in movie['Language']:
+                            recommended_movies.add(movie['Title'])
 
+            # Display recommendations
             if recommended_movies:
                 st.write("You might also like:")
-                for i, title in enumerate(recommended_movies[:10]):  # Limit to 10 recommendations
+                for i, title in enumerate(list(recommended_movies)[:10]):  # Limit to 10 recommendations
                     st.write(f"{i + 1}. {title}")
             else:
-                st.write("No recommendations found based on the genre and language.")
+                st.write("No recommendations found based on the selected genre and language.")
         else:
             st.write("No movie found. Please try another name.")
     else:
