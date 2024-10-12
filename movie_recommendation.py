@@ -1,12 +1,36 @@
 import streamlit as st
 import requests
-import difflib
+import random
 
 # Function to fetch movie data from OMDb API
 def fetch_movie_data(movie_name, api_key):
     url = f"http://www.omdbapi.com/?t={movie_name}&apikey={api_key}"
     response = requests.get(url)
     return response.json()
+
+# Extended list of similar movies based on genre
+def suggest_similar_movies(genre):
+    similar_movies = {
+        "Action": ["Die Hard", "Mad Max: Fury Road", "John Wick", "Gladiator", "Inception",
+                   "The Dark Knight", "Avengers: Endgame", "Terminator 2: Judgment Day",
+                   "The Matrix", "Casino Royale"],
+        "Comedy": ["Superbad", "The Hangover", "Step Brothers", "Groundhog Day",
+                   "Bridesmaids", "Mean Girls", "Anchorman", "Dumb and Dumber",
+                   "21 Jump Street", "The 40-Year-Old Virgin"],
+        "Drama": ["The Shawshank Redemption", "Forrest Gump", "The Godfather", "Fight Club",
+                  "The Dark Knight", "Pulp Fiction", "Schindler's List", "The Social Network",
+                  "Good Will Hunting", "A Beautiful Mind"],
+        "Horror": ["Get Out", "A Quiet Place", "The Conjuring", "It", "Hereditary",
+                   "The Shining", "Halloween", "Sinister", "Scream", "The Babadook"],
+        "Romance": ["The Notebook", "Titanic", "Pride & Prejudice", "La La Land",
+                    "500 Days of Summer", "Crazy, Stupid, Love.", "A Walk to Remember",
+                    "Notting Hill", "The Fault in Our Stars", "Before Sunrise"],
+        # Add more genres and movies as needed
+    }
+    
+    # Return at least 10 random movies or the maximum available
+    movies = similar_movies.get(genre, [])
+    return random.sample(movies, min(len(movies), 10)) if len(movies) >= 10 else movies
 
 # Streamlit app
 st.title('Movie Recommendation System')
@@ -27,19 +51,15 @@ if st.button('Get Recommendations'):
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
-            # Basic recommendation logic (this part may need improvement)
+            # Get the first genre for recommendations
             genres = movie_data['Genre'].split(', ')
             recommended_movies = []
 
-            # Fetch movies from OMDb based on the first genre (if available)
             if genres:
                 genre = genres[0].strip()  # Take the first genre and strip any whitespace
-                genre_movies_data = fetch_movie_data(genre, api_key)  # This may need to be adjusted
+                recommended_movies = suggest_similar_movies(genre)
 
-                if genre_movies_data['Response'] == 'True':
-                    recommended_movies.append(genre_movies_data['Title'])
-
-            # Display recommendations
+            # Ensure at least 10 recommendations
             if recommended_movies:
                 st.write("You might also like:")
                 for i, title in enumerate(recommended_movies):
