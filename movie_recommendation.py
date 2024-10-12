@@ -7,9 +7,9 @@ def fetch_movie_data(movie_name, api_key):
     response = requests.get(url)
     return response.json()
 
-# Function to search for movies by genre
-def search_movies_by_genre(genre, api_key):
-    url = f"http://www.omdbapi.com/?s={genre}&apikey={api_key}"
+# Function to search for movies based on the title (to get similar titles)
+def search_movies_by_title(query, api_key):
+    url = f"http://www.omdbapi.com/?s={query}&apikey={api_key}"
     response = requests.get(url)
     return response.json()
 
@@ -35,17 +35,18 @@ if st.button('Get Recommendations'):
             # Get genres for recommendations
             genres = movie_data['Genre'].split(', ')
             recommended_movies = []
-            
-            # Use each genre to find similar movies
+
+            # Loop through genres and fetch similar movies based on title
             for genre in genres:
-                genre = genre.strip()  # Clean genre string
-                search_results = search_movies_by_genre(genre, api_key)
+                search_results = search_movies_by_title(genre, api_key)
 
                 if search_results['Response'] == 'True':
                     for movie in search_results.get('Search', []):
-                        # Check if the title is not the same as the input movie
+                        # Ensure the movie is not the same as the original movie
                         if movie['Title'].lower() != movie_data['Title'].lower():
-                            recommended_movies.append(movie['Title'])
+                            # Check if the fetched movie's genre matches the input movie's genre
+                            if genre.strip().lower() in [g.lower() for g in movie_data['Genre'].split(', ')]:
+                                recommended_movies.append(movie['Title'])
 
                         # Stop if we have 10 recommendations
                         if len(recommended_movies) >= 10:
@@ -69,3 +70,4 @@ if st.button('Get Recommendations'):
             st.write("No movie found. Please try another name.")
     else:
         st.write("Please enter a movie name.")
+S
