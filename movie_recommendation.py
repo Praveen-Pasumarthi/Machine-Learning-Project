@@ -12,6 +12,7 @@ def suggest_similar_movies(genre):
     # This is a placeholder. In practice, you might pull this from a dataset.
     similar_movies = {
         "Action": ["Die Hard", "Mad Max: Fury Road", "John Wick"],
+        "Adventure":["Oblivion", "Prometheus", "Dune"],
         "Comedy": ["Superbad", "The Hangover", "Step Brothers"],
         "Drama": ["The Shawshank Redemption", "Forrest Gump", "The Godfather"],
         "Horror": ["Get Out", "A Quiet Place", "The Conjuring"],
