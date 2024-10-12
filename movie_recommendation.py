@@ -13,7 +13,9 @@ def suggest_similar_movies(genre):
     similar_movies = {
         "Action": ["Die Hard", "Mad Max: Fury Road", "John Wick", "Gladiator", "Inception",
                    "The Dark Knight", "Avengers: Endgame", "Terminator 2: Judgment Day",
-                   "The Matrix", "Casino Royale"],
+                   "The Matrix", "Casino Royale", "Black Panther", "Guardians of the Galaxy"],
+        "Adventure": ["Jurassic Park", "The Lord of the Rings: The Fellowship of the Ring",
+                      "Pirates of the Caribbean: The Curse of the Black Pearl", "Indiana Jones: Raiders of the Lost Ark"],
         "Comedy": ["Superbad", "The Hangover", "Step Brothers", "Groundhog Day",
                    "Bridesmaids", "Mean Girls", "Anchorman", "Dumb and Dumber",
                    "21 Jump Street", "The 40-Year-Old Virgin"],
@@ -28,7 +30,7 @@ def suggest_similar_movies(genre):
         # Add more genres and movies as needed
     }
     
-    # Return at least 10 random movies or the maximum available
+    # Return a randomized list of at least 10 movies for the specified genre
     movies = similar_movies.get(genre, [])
     return random.sample(movies, min(len(movies), 10)) if len(movies) >= 10 else movies
 
@@ -51,15 +53,24 @@ if st.button('Get Recommendations'):
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
-            # Get the first genre for recommendations
+            # Get genres and recommend based on all genres
             genres = movie_data['Genre'].split(', ')
             recommended_movies = []
 
-            if genres:
-                genre = genres[0].strip()  # Take the first genre and strip any whitespace
-                recommended_movies = suggest_similar_movies(genre)
+            # Collect recommendations from all genres
+            for genre in genres:
+                recommended_movies.extend(suggest_similar_movies(genre.strip()))
 
-            # Ensure at least 10 recommendations
+            # Ensure at least 10 unique recommendations
+            recommended_movies = list(set(recommended_movies))  # Remove duplicates
+            if len(recommended_movies) < 10:
+                # If there are not enough unique recommendations, add more random ones
+                all_movies = [movie for sublist in similar_movies.values() for movie in sublist]
+                recommended_movies += random.sample(all_movies, min(10 - len(recommended_movies), len(all_movies)))
+                
+            recommended_movies = random.sample(recommended_movies, min(len(recommended_movies), 10))  # Shuffle the final list
+
+            # Display recommendations
             if recommended_movies:
                 st.write("You might also like:")
                 for i, title in enumerate(recommended_movies):
