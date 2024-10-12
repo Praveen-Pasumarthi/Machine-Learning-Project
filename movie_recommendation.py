@@ -7,50 +7,43 @@ def fetch_movie_data(movie_name, api_key):
     response = requests.get(url)
     return response.json()
 
-# Mock function to suggest similar movies based on genre
 def suggest_similar_movies(genre):
-    # This is a placeholder. In practice, you might pull this from a dataset.
     similar_movies = {
-        "Action": ["Die Hard", "Mad Max: Fury Road", "John Wick"],
-        "Adventure":["Oblivion", "Prometheus", "Dune"],
-        "Comedy": ["Superbad", "The Hangover", "Step Brothers"],
-        "Drama": ["The Shawshank Redemption", "Forrest Gump", "The Godfather"],
-        "Horror": ["Get Out", "A Quiet Place", "The Conjuring"],
-        "Romance": ["The Notebook", "Titanic", "Pride & Prejudice"],
+        "Action": ["Die Hard", "Mad Max: Fury Road", "John Wick", "The Dark Knight", "Gladiator"],
+        "Comedy": ["Superbad", "The Hangover", "Step Brothers", "Anchorman", "Dumb and Dumber"],
+        "Drama": ["The Shawshank Redemption", "Forrest Gump", "The Godfather", "A Beautiful Mind", "The Pursuit of Happyness"],
+        "Horror": ["Get Out", "A Quiet Place", "The Conjuring", "Hereditary", "The Exorcist"],
+        "Romance": ["The Notebook", "Titanic", "Pride & Prejudice", "La La Land", "A Walk to Remember"],
+        "Sci-Fi": ["Inception", "The Matrix", "Interstellar", "Blade Runner 2049", "The Terminator"]
     }
-    return similar_movies.get(genre, [])
+    
+    return similar_movies.get(genre, [])[:5]
 
 # Streamlit app
 st.title('Movie Recommendation System')
 
 # User input
 movie_name = st.text_input("Enter your favorite movie:")
-api_key = '45dacc56'  # Your OMDb API key
+api_key = '45dacc56'
 
 if st.button('Get Recommendations'):
     if movie_name:
-        # Fetch data from OMDb API
         movie_data = fetch_movie_data(movie_name, api_key)
 
-        if movie_data.get('Response') == 'True':
+        if movie_data['Response'] == 'True':
             st.write(f"**Title:** {movie_data['Title']}")
             st.write(f"**Year:** {movie_data['Year']}")
             st.write(f"**Genre:** {movie_data['Genre']}")
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
-            # Get the first genre for recommendations
             genres = movie_data['Genre'].split(', ')
             recommended_movies = []
 
             if genres:
-                genre = genres[0].strip()  # Take the first genre and strip any whitespace
+                genre = genres[0].strip()
                 recommended_movies = suggest_similar_movies(genre)
 
-            # Limit recommendations to a maximum of 5
-            recommended_movies = recommended_movies[:5]
-
-            # Display recommendations
             if recommended_movies:
                 st.write("You might also like:")
                 for i, title in enumerate(recommended_movies):
