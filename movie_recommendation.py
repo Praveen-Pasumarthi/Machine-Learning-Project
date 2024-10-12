@@ -7,9 +7,9 @@ def fetch_movie_data(movie_name, api_key):
     response = requests.get(url)
     return response.json()
 
-# Function to search for movies based on the title (to get similar titles)
-def search_movies_by_title(query, api_key):
-    url = f"http://www.omdbapi.com/?s={query}&apikey={api_key}"
+# Function to fetch movies by genre from OMDb API
+def fetch_movies_by_genre(genre, api_key):
+    url = f"http://www.omdbapi.com/?s={genre}&apikey={api_key}"
     response = requests.get(url)
     return response.json()
 
@@ -22,47 +22,42 @@ api_key = '45dacc56'  # Your OMDb API key
 
 if st.button('Get Recommendations'):
     if movie_name:
-        # Fetch data from OMDb API
+        # Fetch movie data from OMDb API
         movie_data = fetch_movie_data(movie_name, api_key)
 
-        if movie_data['Response'] == 'True':
+        if movie_data.get('Response') == 'True':
+            # Display movie information
             st.write(f"**Title:** {movie_data['Title']}")
             st.write(f"**Year:** {movie_data['Year']}")
             st.write(f"**Genre:** {movie_data['Genre']}")
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
-            # Get genres for recommendations
+            # Fetch similar movies based on the first genre
             genres = movie_data['Genre'].split(', ')
             recommended_movies = []
 
-            # Loop through genres and fetch similar movies based on title
             for genre in genres:
-                search_results = search_movies_by_title(genre, api_key)
+                genre = genre.strip()  # Clean genre string
+                search_results = fetch_movies_by_genre(genre, api_key)
 
-                if search_results['Response'] == 'True':
+                if search_results.get('Response') == 'True':
                     for movie in search_results.get('Search', []):
-                        # Ensure the movie is not the same as the original movie
+                        # Exclude the original movie from recommendations
                         if movie['Title'].lower() != movie_data['Title'].lower():
-                            # Check if the fetched movie's genre matches the input movie's genre
-                            if genre.strip().lower() in [g.lower() for g in movie_data['Genre'].split(', ')]:
-                                recommended_movies.append(movie['Title'])
+                            recommended_movies.append(movie['Title'])
+                            if len(recommended_movies) >= 10:  # Limit to 10 recommendations
+                                break
 
-                        # Stop if we have 10 recommendations
-                        if len(recommended_movies) >= 10:
-                            break
-
-                # Stop if we have 10 recommendations
-                if len(recommended_movies) >= 10:
+                if len(recommended_movies) >= 10:  # Stop if we already have 10 recommendations
                     break
 
             # Display recommendations, ensuring unique movie titles
-            recommended_movies = list(set(recommended_movies))  # Remove duplicates
-            recommended_movies = recommended_movies[:10]  # Limit to 10 recommendations
+            recommended_movies = list(set(recommended_movies))[:10]  # Remove duplicates and limit to 10
 
             if recommended_movies:
                 st.write("You might also like:")
-                for i, title in enumerate(recommended_movies):  # Display the titles
+                for i, title in enumerate(recommended_movies):
                     st.write(f"{i + 1}. {title}")
             else:
                 st.write("No recommendations found based on the genre.")
@@ -70,4 +65,3 @@ if st.button('Get Recommendations'):
             st.write("No movie found. Please try another name.")
     else:
         st.write("Please enter a movie name.")
-S
