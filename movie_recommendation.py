@@ -7,7 +7,7 @@ def fetch_movie_data(movie_name, api_key):
     response = requests.get(url)
     return response.json()
 
-# Function to search for movies by genre using OMDb API
+# Function to search for movies by genre
 def search_movies_by_genre(genre, api_key):
     url = f"http://www.omdbapi.com/?s={genre}&apikey={api_key}"
     response = requests.get(url)
@@ -31,12 +31,12 @@ if st.button('Get Recommendations'):
             st.write(f"**Genre:** {movie_data['Genre']}")
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
-            
+
             # Get genres for recommendations
             genres = movie_data['Genre'].split(', ')
             recommended_movies = []
-
-            # Collect recommendations for each genre
+            
+            # Use each genre to find similar movies
             for genre in genres:
                 genre = genre.strip()  # Clean genre string
                 search_results = search_movies_by_genre(genre, api_key)
@@ -44,7 +44,7 @@ if st.button('Get Recommendations'):
                 if search_results['Response'] == 'True':
                     for movie in search_results.get('Search', []):
                         # Check if the title is not the same as the input movie
-                        if movie['Title'] != movie_data['Title']:
+                        if movie['Title'].lower() != movie_data['Title'].lower():
                             recommended_movies.append(movie['Title'])
 
                         # Stop if we have 10 recommendations
