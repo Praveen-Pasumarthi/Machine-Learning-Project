@@ -45,7 +45,8 @@ if st.button('Get Recommendations'):
 
                 if search_results['Response'] == 'True':
                     for movie in search_results.get('Search', []):
-                        if any(lang in movie['Language'] for lang in languages):
+                        # Check if 'Language' key exists in the movie data
+                        if 'Language' in movie and any(lang in movie['Language'] for lang in languages):
                             recommended_movies.append(movie['Title'])
                             
                             # Stop if we have 10 recommendations
