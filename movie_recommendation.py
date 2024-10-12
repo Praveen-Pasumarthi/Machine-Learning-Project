@@ -7,10 +7,15 @@ def fetch_movie_data(movie_name, api_key):
     response = requests.get(url)
     return response.json()
 
-# Function to search movies by genre and language
-def search_movies(genre, language, api_key):
-    # OMDb API does not have a direct way to filter by language, so we can search all movies by genre and then filter manually.
+# Function to search movies by genre
+def search_movies(genre, api_key):
     url = f"http://www.omdbapi.com/?s={genre}&apikey={api_key}"
+    response = requests.get(url)
+    return response.json()
+
+# Function to fetch detailed movie information by ID
+def fetch_detailed_movie_data(movie_id, api_key):
+    url = f"http://www.omdbapi.com/?i={movie_id}&apikey={api_key}"
     response = requests.get(url)
     return response.json()
 
@@ -42,16 +47,19 @@ if st.button('Get Recommendations'):
             genres = movie_data['Genre'].split(', ')
             recommended_movies = set()  # Using a set to avoid duplicates
 
-            # Search for movies based on genre and selected language
+            # Search for movies based on genre
             for genre in genres:
                 genre = genre.strip()  # Clean genre string
-                search_results = search_movies(genre, selected_language, api_key)
+                search_results = search_movies(genre, api_key)
 
                 if search_results['Response'] == 'True':
                     for movie in search_results.get('Search', []):
+                        # Fetch detailed movie information for language check
+                        detailed_movie_data = fetch_detailed_movie_data(movie['imdbID'], api_key)
+                        
                         # Check if the movie language matches the selected language
-                        if selected_language in movie['Language']:
-                            recommended_movies.add(movie['Title'])
+                        if detailed_movie_data['Response'] == 'True' and selected_language in detailed_movie_data['Language']:
+                            recommended_movies.add(detailed_movie_data['Title'])
 
             # Display recommendations
             if recommended_movies:
