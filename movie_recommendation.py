@@ -7,17 +7,25 @@ def fetch_movie_data(movie_name, api_key):
     response = requests.get(url)
     return response.json()
 
-def suggest_similar_movies(genre):
+def suggest_similar_movies(genres):
     similar_movies = {
         "Action": ["Die Hard", "Mad Max: Fury Road", "John Wick", "The Dark Knight", "Gladiator"],
         "Comedy": ["Superbad", "The Hangover", "Step Brothers", "Anchorman", "Dumb and Dumber"],
         "Drama": ["The Shawshank Redemption", "Forrest Gump", "The Godfather", "A Beautiful Mind", "The Pursuit of Happyness"],
         "Horror": ["Get Out", "A Quiet Place", "The Conjuring", "Hereditary", "The Exorcist"],
         "Romance": ["The Notebook", "Titanic", "Pride & Prejudice", "La La Land", "A Walk to Remember"],
-        "Sci-Fi": ["Inception", "The Matrix", "Interstellar", "Blade Runner 2049", "The Terminator"]
+        "Sci-Fi": ["Inception", "The Matrix", "Interstellar", "Blade Runner 2049", "The Terminator"],
+        "Adventure": ["Indiana Jones", "The Lord of the Rings", "Jurassic Park", "Pirates of the Caribbean", "The Hobbit"]
     }
     
-    return similar_movies.get(genre, [])[:5]
+    recommendations = []
+    for genre in genres:
+        if genre in similar_movies:
+            recommendations += similar_movies[genre]
+            if len(recommendations) >= 5:
+                return recommendations[:5]
+    
+    return recommendations[:5]
 
 # Streamlit app
 st.title('Movie Recommendation System')
@@ -37,13 +45,11 @@ if st.button('Get Recommendations'):
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
+            # Get recommendations based on multiple genres
             genres = movie_data['Genre'].split(', ')
-            recommended_movies = []
+            recommended_movies = suggest_similar_movies([genre.strip() for genre in genres])
 
-            if genres:
-                genre = genres[0].strip()
-                recommended_movies = suggest_similar_movies(genre)
-
+            # Display recommendations
             if recommended_movies:
                 st.write("You might also like:")
                 for i, title in enumerate(recommended_movies):
