@@ -1,62 +1,52 @@
 import streamlit as st
-import requests
+import pandas as pd
+import difflib
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-# Function to fetch movie data from OMDb API
-def fetch_movie_data(movie_name, api_key):
-    url = f"http://www.omdbapi.com/?t={movie_name}&apikey={api_key}"
-    response = requests.get(url)
-    return response.json()
+# Load the movies dataset
+@st.cache_data
+def load_data():
+    return pd.read_csv('movies.csv')
 
-def suggest_similar_movies(genres):
-    similar_movies = {
-        "Action": ["Die Hard", "Mad Max: Fury Road", "John Wick", "The Dark Knight", "Gladiator"],
-        "Comedy": ["Superbad", "The Hangover", "Step Brothers", "Anchorman", "Dumb and Dumber"],
-        "Drama": ["The Shawshank Redemption", "Forrest Gump", "The Godfather", "A Beautiful Mind", "The Pursuit of Happyness"],
-        "Horror": ["Get Out", "A Quiet Place", "The Conjuring", "Hereditary", "The Exorcist"],
-        "Romance": ["The Notebook", "Titanic", "Pride & Prejudice", "La La Land", "A Walk to Remember"],
-        "Sci-Fi": ["Inception", "The Matrix", "Interstellar", "Blade Runner 2049", "The Terminator"],
-        "Adventure": ["Indiana Jones", "The Lord of the Rings", "Jurassic Park", "Pirates of the Caribbean", "The Hobbit"]
-    }
-    
-    recommendations = []
-    for genre in genres:
-        if genre in similar_movies:
-            recommendations += similar_movies[genre]
-            if len(recommendations) >= 5:
-                return recommendations[:5]
-    
-    return recommendations[:5]
+movies_data = load_data()
+
+# Create a TF-IDF vectorizer for the genres
+def create_similarity_matrix(data):
+    tfidf_vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = tfidf_vectorizer.fit_transform(data['genres'].fillna(''))
+    return cosine_similarity(tfidf_matrix)
+
+# Compute the similarity matrix
+similarity = create_similarity_matrix(movies_data)
 
 # Streamlit app
 st.title('Movie Recommendation System')
 
 # User input
 movie_name = st.text_input("Enter your favorite movie:")
-api_key = '45dacc56'
 
 if st.button('Get Recommendations'):
     if movie_name:
-        movie_data = fetch_movie_data(movie_name, api_key)
+        # Check for a close match of the movie
+        list_of_all_titles = movies_data['title'].tolist()
+        find_close_match = difflib.get_close_matches(movie_name, list_of_all_titles)
 
-        if movie_data['Response'] == 'True':
-            st.write(f"**Title:** {movie_data['Title']}")
-            st.write(f"**Year:** {movie_data['Year']}")
-            st.write(f"**Genre:** {movie_data['Genre']}")
-            st.write(f"**Plot:** {movie_data['Plot']}")
-            st.write(f"**Rating:** {movie_data['imdbRating']}")
+        if find_close_match:
+            close_match = find_close_match[0]
+            index_of_the_movie = movies_data[movies_data.title == close_match]['index'].values[0]
 
-            # Get recommendations based on multiple genres
-            genres = movie_data['Genre'].split(', ')
-            recommended_movies = suggest_similar_movies([genre.strip() for genre in genres])
+            # Get similarity scores
+            similarity_score = list(enumerate(similarity[index_of_the_movie]))
+            sorted_similar_movies = sorted(similarity_score, key=lambda x: x[1], reverse=True)
 
             # Display recommendations
-            if recommended_movies:
-                st.write("You might also like:")
-                for i, title in enumerate(recommended_movies):
-                    st.write(f"{i + 1}. {title}")
-            else:
-                st.write("No recommendations found based on the genre.")
+            st.write(f"Movies recommended based on {close_match}:")
+            for i, movie in enumerate(sorted_similar_movies[1:11]):  # Top 10 recommendations
+                index = movie[0]
+                title = movies_data[movies_data.index == index]['title'].values[0]
+                st.write(f"{i + 1}. {title}")
         else:
-            st.write("No movie found. Please try another name.")
+            st.write("No close match found. Try another movie.")
     else:
         st.write("Please enter a movie name.")
