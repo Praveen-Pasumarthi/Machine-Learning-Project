@@ -13,7 +13,7 @@ st.title('Movie Recommendation System')
 
 # User input
 movie_name = st.text_input("Enter your favorite movie:")
-api_key = 'YOUR_OMDB_API_KEY'  # Replace with your actual OMDb API key
+api_key = '45dacc56'  # Your OMDb API key
 
 if st.button('Get Recommendations'):
     if movie_name:
@@ -27,16 +27,14 @@ if st.button('Get Recommendations'):
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
-            # Here you can implement basic recommendation logic.
-            # Since OMDb does not directly provide recommendations, 
-            # you can suggest movies based on genres or keywords.
+            # Basic recommendation logic (this part may need improvement)
             genres = movie_data['Genre'].split(', ')
             recommended_movies = []
 
-            # Fetch a list of movies from OMDb based on the first genre
+            # Fetch movies from OMDb based on the first genre (if available)
             if genres:
-                genre = genres[0]
-                genre_movies_data = fetch_movie_data(genre, api_key)  # This may need to be adjusted for a genre-based search
+                genre = genres[0].strip()  # Take the first genre and strip any whitespace
+                genre_movies_data = fetch_movie_data(genre, api_key)  # This may need to be adjusted
 
                 if genre_movies_data['Response'] == 'True':
                     recommended_movies.append(genre_movies_data['Title'])
