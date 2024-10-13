@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import difflib
 import requests
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -46,26 +45,22 @@ if st.button('Get Recommendations'):
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
-            # Check for a close match of the movie in the CSV data
-            list_of_all_titles = movies_data['title'].tolist()
-            find_close_match = difflib.get_close_matches(movie_name, list_of_all_titles)
-
-            if find_close_match:
-                close_match = find_close_match[0]
-                index_of_the_movie = movies_data[movies_data.title == close_match]['index'].values[0]
+            # Search for the movie in the CSV data directly by title (no need for fuzzy matching)
+            if movie_data['Title'] in movies_data['title'].values:
+                index_of_the_movie = movies_data[movies_data.title == movie_data['Title']]['index'].values[0]
 
                 # Get similarity scores
                 similarity_score = list(enumerate(similarity[index_of_the_movie]))
                 sorted_similar_movies = sorted(similarity_score, key=lambda x: x[1], reverse=True)
 
                 # Display recommendations from the CSV
-                st.write(f"Movies recommended based on {close_match}:")
+                st.write(f"Movies recommended based on {movie_data['Title']}:")
                 for i, movie in enumerate(sorted_similar_movies[1:11]):  # Top 10 recommendations
                     index = movie[0]
                     title = movies_data[movies_data.index == index]['title'].values[0]
                     st.write(f"{i + 1}. {title}")
             else:
-                st.write("No close match found in the dataset. Try another movie.")
+                st.write(f"Movie '{movie_data['Title']}' not found in the local dataset for recommendations.")
         else:
             st.write("No movie found on OMDb API. Please try another name.")
     else:
