@@ -36,7 +36,7 @@ if st.button('Get Recommendations'):
         if matching_movies.empty:
             st.write(f"Movie '{movie_name}' not found in the local dataset. Trying similar names...")
             list_of_all_titles = movies_data['title'].str.lower().str.strip().tolist()
-            close_matches = difflib.get_close_matches(movie_name_clean, list_of_all_titles, n=3, cutoff=0.6)
+            close_matches = difflib.get_close_matches(movie_name_clean, list_of_all_titles, n=1, cutoff=0.8)
 
             if close_matches:
                 st.write(f"Did you mean one of these?")
