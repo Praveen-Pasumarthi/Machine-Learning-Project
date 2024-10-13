@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import difflib
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -45,22 +46,37 @@ if st.button('Get Recommendations'):
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
-            # Search for the movie in the CSV data directly by title (no need for fuzzy matching)
-            if movie_data['Title'] in movies_data['title'].values:
-                index_of_the_movie = movies_data[movies_data.title == movie_data['Title']]['index'].values[0]
+            # Search for the movie in the CSV data using case-insensitive search
+            movie_name_clean = movie_data['Title'].strip().lower()
+            matching_movies = movies_data[movies_data['title'].str.lower().str.strip() == movie_name_clean]
+
+            # If exact match fails, try fuzzy matching using difflib
+            if matching_movies.empty:
+                st.write(f"Movie '{movie_data['Title']}' not found in the local dataset. Trying closest match...")
+                list_of_all_titles = movies_data['title'].str.lower().str.strip().tolist()
+                close_matches = difflib.get_close_matches(movie_name_clean, list_of_all_titles, n=1, cutoff=0.6)
+                
+                if close_matches:
+                    close_match = close_matches[0]
+                    st.write(f"Showing recommendations for the closest match: {close_match.title()}")
+                    matching_movies = movies_data[movies_data['title'].str.lower().str.strip() == close_match]
+
+            # If a match (exact or fuzzy) is found, display recommendations
+            if not matching_movies.empty:
+                index_of_the_movie = matching_movies['index'].values[0]
 
                 # Get similarity scores
                 similarity_score = list(enumerate(similarity[index_of_the_movie]))
                 sorted_similar_movies = sorted(similarity_score, key=lambda x: x[1], reverse=True)
 
                 # Display recommendations from the CSV
-                st.write(f"Movies recommended based on {movie_data['Title']}:")
+                st.write(f"Movies recommended based on {matching_movies['title'].values[0]}:")
                 for i, movie in enumerate(sorted_similar_movies[1:11]):  # Top 10 recommendations
                     index = movie[0]
                     title = movies_data[movies_data.index == index]['title'].values[0]
                     st.write(f"{i + 1}. {title}")
             else:
-                st.write(f"Movie '{movie_data['Title']}' not found in the local dataset for recommendations.")
+                st.write(f"Movie '{movie_data['Title']}' not found for recommendations.")
         else:
             st.write("No movie found on OMDb API. Please try another name.")
     else:
