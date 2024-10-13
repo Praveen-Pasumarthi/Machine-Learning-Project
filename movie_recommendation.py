@@ -53,7 +53,7 @@ if st.button('Get Recommendations'):
                 # Movie not found, suggest based on genre
                 st.write(f"Movie '{movie_data['Title']}' not found in the local dataset.")
                 genres = movie_data['Genre'].split(', ')
-                genre_matches = movies_data[movies_data['genres'].apply(lambda x: any(genre.strip() in x for genre in genres))]
+                genre_matches = movies_data[movies_data['genres'].fillna('').apply(lambda x: any(genre.strip() in x for genre in genres))]
 
                 if not genre_matches.empty:
                     st.write(f"Showing recommendations for genre: {', '.join(genres)}")
