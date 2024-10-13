@@ -3,7 +3,6 @@ import pandas as pd
 import requests
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
-import difflib
 
 # OMDb API function
 def fetch_movie_data(movie_name, api_key):
@@ -18,14 +17,15 @@ def load_data():
 
 movies_data = load_data()
 
-# Create a TF-IDF vectorizer for the genres
-def create_similarity_matrix(data):
+# Function to compute similarity for a specific movie
+def compute_similarity_for_movie(data, index):
     tfidf_vectorizer = TfidfVectorizer(stop_words='english')
     tfidf_matrix = tfidf_vectorizer.fit_transform(data['genres'].fillna(''))
-    return cosine_similarity(tfidf_matrix)
 
-# Compute the similarity matrix
-similarity = create_similarity_matrix(movies_data)
+    # Calculate similarity only for the specific movie
+    movie_tfidf = tfidf_matrix[index]
+    similarity_scores = cosine_similarity(movie_tfidf, tfidf_matrix).flatten()
+    return similarity_scores
 
 # Streamlit app
 st.title('Movie Recommendation System')
@@ -47,42 +47,25 @@ if st.button('Get Recommendations'):
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
             # Search for the movie in the CSV data directly by title
-            if movie_data['Title'] in movies_data['title'].values:
-                index_of_the_movie = movies_data[movies_data.title == movie_data['Title']]['index'].values[0]
+            matching_movie = movies_data[movies_data.title.str.lower() == movie_data['Title'].lower()]
 
-                # Get similarity scores
-                similarity_score = list(enumerate(similarity[index_of_the_movie]))
-                sorted_similar_movies = sorted(similarity_score, key=lambda x: x[1], reverse=True)
+            if not matching_movie.empty:
+                index_of_the_movie = matching_movie.index[0]
 
-                # Display recommendations from the CSV
+                # Get similarity scores only for this movie
+                similarity_scores = compute_similarity_for_movie(movies_data, index_of_the_movie)
+
+                # Get top 10 similar movies
+                sorted_similar_movies = sorted(list(enumerate(similarity_scores)), key=lambda x: x[1], reverse=True)
+
+                # Display recommendations
                 st.write(f"Movies recommended based on {movie_data['Title']}:")
                 for i, movie in enumerate(sorted_similar_movies[1:11]):  # Top 10 recommendations
                     index = movie[0]
                     title = movies_data.loc[index, 'title']
                     st.write(f"{i + 1}. {title}")
             else:
-                # Close match search if exact title isn't found
-                st.write(f"Movie '{movie_data['Title']}' not found in the local dataset. Trying closest match...")
-
-                # Find closest match using difflib
-                close_matches = difflib.get_close_matches(movie_data['Title'], movies_data['title'].tolist(), n=1, cutoff=0.6)
-                
-                if close_matches:
-                    closest_title = close_matches[0]
-                    index_of_the_movie = movies_data[movies_data.title == closest_title]['index'].values[0]
-                    
-                    # Get similarity scores
-                    similarity_score = list(enumerate(similarity[index_of_the_movie]))
-                    sorted_similar_movies = sorted(similarity_score, key=lambda x: x[1], reverse=True)
-
-                    # Display recommendations for closest match
-                    st.write(f"Showing recommendations for the closest match: {closest_title}")
-                    for i, movie in enumerate(sorted_similar_movies[1:11]):  # Top 10 recommendations
-                        index = movie[0]
-                        title = movies_data.loc[index, 'title']
-                        st.write(f"{i + 1}. {title}")
-                else:
-                    st.write(f"No close matches found for '{movie_data['Title']}' in the local dataset.")
+                st.write(f"Movie '{movie_data['Title']}' not found in the local dataset for recommendations.")
         else:
             st.write("No movie found on OMDb API. Please try another name.")
     else:
