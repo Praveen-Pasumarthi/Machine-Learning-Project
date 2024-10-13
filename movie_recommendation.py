@@ -49,14 +49,12 @@ if st.button('Get Recommendations'):
             # Search for the movie in the CSV data using case-insensitive search
             movie_name_clean = movie_data['Title'].strip().lower()
             matching_movies = movies_data[movies_data['title'].str.lower().str.strip() == movie_name_clean]
-            
-        
 
             # If exact match fails, try fuzzy matching using difflib
             if matching_movies.empty:
                 st.write(f"Movie '{movie_data['Title']}' not found in the local dataset. Trying closest match...")
                 list_of_all_titles = movies_data['title'].str.lower().str.strip().tolist()
-                close_matches = difflib.get_close_matches(movie_name_clean, list_of_all_titles, n=1, cutoff=0.8)
+                close_matches = difflib.get_close_matches(movie_name_clean, list_of_all_titles, n=1, cutoff=0.6)
                 
                 if close_matches:
                     close_match = close_matches[0]
