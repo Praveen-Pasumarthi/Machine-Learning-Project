@@ -17,6 +17,9 @@ def load_data():
 
 movies_data = load_data()
 
+# Print column names for debugging
+st.write(movies_data.columns)  # Check column names in the CSV
+
 # Create a TF-IDF vectorizer for the genres
 def create_similarity_matrix(data):
     tfidf_vectorizer = TfidfVectorizer(stop_words='english')
@@ -45,9 +48,13 @@ if st.button('Get Recommendations'):
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
-            # Search for the movie in the CSV data directly by title (no need for fuzzy matching)
-            if movie_data['Title'] in movies_data['title'].values:
-                index_of_the_movie = movies_data[movies_data.title == movie_data['Title']]['index'].values[0]
+            # Normalize movie title for comparison
+            normalized_title = movie_data['Title'].strip().lower()  # Normalize title
+            st.write(f"Normalized Title for Search: {normalized_title}")
+
+            # Check for the movie in the CSV data directly by title
+            if normalized_title in movies_data['title'].str.lower().values:
+                index_of_the_movie = movies_data[movies_data['title'].str.lower() == normalized_title]['index'].values[0]
 
                 # Get similarity scores
                 similarity_score = list(enumerate(similarity[index_of_the_movie]))
