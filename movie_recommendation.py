@@ -57,6 +57,7 @@ if st.button('Get Recommendations'):
 
                 if not genre_matches.empty:
                     st.write(f"Showing recommendations for genre: {', '.join(genres)}")
+                    shuffled_genre_matches = genre_matches.sample(frac=1).head(10)
                     for i, title in enumerate(genre_matches['title'].head(10)):
                         st.write(f"{i + 1}. {title}")
                 else:
