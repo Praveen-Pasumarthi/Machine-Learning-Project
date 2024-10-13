@@ -1,14 +1,8 @@
 import streamlit as st
 import pandas as pd
-import requests
+import difflib
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
-
-# OMDb API function
-def fetch_movie_data(movie_name, api_key):
-    url = f"http://www.omdbapi.com/?t={movie_name}&apikey={api_key}"
-    response = requests.get(url)
-    return response.json()
 
 # Load the movies dataset
 @st.cache_data
@@ -31,37 +25,36 @@ st.title('Movie Recommendation System')
 
 # User input
 movie_name = st.text_input("Enter your favorite movie:")
-api_key = '45dacc56'  # Your OMDb API key
 
 if st.button('Get Recommendations'):
     if movie_name:
-        # Fetch data from OMDb API
-        movie_data = fetch_movie_data(movie_name, api_key)
+        # Case-insensitive and trimmed search for the movie in the CSV data
+        movie_name_clean = movie_name.strip().lower()
+        matching_movies = movies_data[movies_data['title'].str.lower().str.strip() == movie_name_clean]
 
-        if movie_data['Response'] == 'True':
-            st.write(f"**Title:** {movie_data['Title']}")
-            st.write(f"**Year:** {movie_data['Year']}")
-            st.write(f"**Genre:** {movie_data['Genre']}")
-            st.write(f"**Plot:** {movie_data['Plot']}")
-            st.write(f"**Rating:** {movie_data['imdbRating']}")
+        # If exact match fails, try a close match using difflib
+        if matching_movies.empty:
+            list_of_all_titles = movies_data['title'].str.lower().str.strip().tolist()
+            close_matches = difflib.get_close_matches(movie_name_clean, list_of_all_titles, n=1, cutoff=0.6)
+            
+            if close_matches:
+                close_match = close_matches[0]
+                matching_movies = movies_data[movies_data['title'].str.lower().str.strip() == close_match]
 
-            # Search for the movie in the CSV data directly by title (no need for fuzzy matching)
-            if movie_data['Title'] in movies_data['title'].values:
-                index_of_the_movie = movies_data[movies_data.title == movie_data['Title']]['index'].values[0]
+        if not matching_movies.empty:
+            index_of_the_movie = matching_movies['index'].values[0]
 
-                # Get similarity scores
-                similarity_score = list(enumerate(similarity[index_of_the_movie]))
-                sorted_similar_movies = sorted(similarity_score, key=lambda x: x[1], reverse=True)
+            # Get similarity scores
+            similarity_score = list(enumerate(similarity[index_of_the_movie]))
+            sorted_similar_movies = sorted(similarity_score, key=lambda x: x[1], reverse=True)
 
-                # Display recommendations from the CSV
-                st.write(f"Movies recommended based on {movie_data['Title']}:")
-                for i, movie in enumerate(sorted_similar_movies[1:11]):  # Top 10 recommendations
-                    index = movie[0]
-                    title = movies_data[movies_data.index == index]['title'].values[0]
-                    st.write(f"{i + 1}. {title}")
-            else:
-                st.write(f"Movie '{movie_data['Title']}' not found in the local dataset for recommendations.")
+            # Display recommendations from the CSV
+            st.write(f"Movies recommended based on {matching_movies['title'].values[0]}:")
+            for i, movie in enumerate(sorted_similar_movies[1:11]):  # Top 10 recommendations
+                index = movie[0]
+                title = movies_data[movies_data.index == index]['title'].values[0]
+                st.write(f"{i + 1}. {title}")
         else:
-            st.write("No movie found on OMDb API. Please try another name.")
+            st.write(f"Movie '{movie_name}' not found in the local dataset for recommendations.")
     else:
         st.write("Please enter a movie name.")
