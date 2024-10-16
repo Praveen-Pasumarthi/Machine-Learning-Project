@@ -11,7 +11,6 @@ def fetch_movie_data(movie_name, api_key):
     return response.json()
 
 # Load the movies dataset
-@st.cache_data
 def load_data():
     return pd.read_csv('movies.csv')
 
