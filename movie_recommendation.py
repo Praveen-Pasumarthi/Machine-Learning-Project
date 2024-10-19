@@ -10,20 +10,20 @@ def fetch_movie_data(movie_name, api_key):
     response = requests.get(url)
     return response.json()
 
-# Load the movies dataset
+# Loading the dataset
 @st.cache_data
 def load_data():
     return pd.read_csv('movies.csv')
 
 movies_data = load_data()
 
-# Create a TF-IDF vectorizer for the genres
+# Creating a vectorizer for the genres
 def create_similarity_matrix(data):
     tfidf_vectorizer = TfidfVectorizer(stop_words='english')
     tfidf_matrix = tfidf_vectorizer.fit_transform(data['genres'].fillna(''))
     return cosine_similarity(tfidf_matrix)
 
-# Compute the similarity matrix
+# Computing similarity matrix
 similarity = create_similarity_matrix(movies_data)
 
 # Streamlit app
@@ -31,11 +31,11 @@ st.title('Movie Recommendation System')
 
 # User input
 movie_name = st.text_input("Enter your favorite movie:")
-api_key = '45dacc56'  # Your OMDb API key
+api_key = '45dacc56' 
 
 if st.button('Get Recommendations'):
     if movie_name:
-        # Fetch data from OMDb API
+        # Fetching data from OMDb API
         movie_data = fetch_movie_data(movie_name, api_key)
 
         if movie_data['Response'] == 'True':
@@ -45,12 +45,11 @@ if st.button('Get Recommendations'):
             st.write(f"**Plot:** {movie_data['Plot']}")
             st.write(f"**Rating:** {movie_data['imdbRating']}")
 
-            # Clean and search for the movie in the CSV
+            # Cleaning and searching for the movie in the CSV
             movie_name_clean = movie_data['Title'].strip().lower()
             matching_movies = movies_data[movies_data['title'].str.lower().str.strip() == movie_name_clean]
 
             if matching_movies.empty:
-                # Movie not found, suggest based on genre
                 st.write(f"Movie '{movie_data['Title']}' not found in the local dataset.")
                 genres = movie_data['Genre'].split(', ')
                 genre_matches = movies_data[movies_data['genres'].fillna('').apply(lambda x: any(genre.strip() in x for genre in genres))]
@@ -58,22 +57,39 @@ if st.button('Get Recommendations'):
                 if not genre_matches.empty:
                     st.write(f"Showing recommendations for genre: {', '.join(genres)}")
                     shuffled_genre_matches = genre_matches.sample(frac=1).head(10)
-                    for i, title in enumerate(genre_matches['title'].head(10)):
+                    for i, title in enumerate(shuffled_genre_matches['title']):
                         st.write(f"{i + 1}. {title}")
                 else:
                     st.write(f"No recommendations found for genres: {', '.join(genres)}.")
             else:
-                # If an exact match is found, display recommendations based on similarity
+                # If an exact match is found, displays recommendations based on similarity
                 index_of_the_movie = matching_movies.index[0]
 
-                # Get similarity scores
+                sequels = movies_data[movies_data['title'].str.contains(f"{movie_data['Title']} 2|{movie_data['Title']} II|{movie_data['Title']} Returns", case=False, na=False)]
+
+                if not sequels.empty:
+                    st.write(f"**Sequels/Related Movies:**")
+                    for i, title in enumerate(sequels['title']):
+                        st.write(f"{i + 1}. {title}")
+
+                # Getting similarity scores
                 similarity_score = list(enumerate(similarity[index_of_the_movie]))
                 sorted_similar_movies = sorted(similarity_score, key=lambda x: x[1], reverse=True)
 
                 st.write(f"Movies recommended based on {matching_movies['title'].values[0]}:")
-                for i, movie in enumerate(sorted_similar_movies[1:11]):  # Top 10 recommendations
+
+                # Displaying recommended movies
+                recommended_movies = []
+                for movie in sorted_similar_movies[1:10]: 
                     index = movie[0]
                     title = movies_data.loc[index]['title']
+                    recommended_movies.append(title)
+
+                # Combined sequels and genre-based recommendations
+                recommendations = sequels['title'].tolist() + recommended_movies
+                recommendations = list(dict.fromkeys(recommendations)) 
+
+                for i, title in enumerate(recommendations):
                     st.write(f"{i + 1}. {title}")
         else:
             st.write("No movie found on OMDb API. Please try another name.")
