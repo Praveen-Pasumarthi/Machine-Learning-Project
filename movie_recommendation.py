@@ -13,6 +13,7 @@ def fetch_movie_data(movie_name, api_key):
 @st.cache_data
 def load_data():
     return pd.read_csv('movies.csv')
+
 movies_data = load_data()
 
 # Streamlit app
@@ -20,84 +21,54 @@ st.title('Movie Recommendation System')
 
 # User input
 movie_name = st.text_input("Enter your favorite movie:")
-api_key = '45dacc56'
+api_key = '65215297'
 
 if st.button('Get Recommendations'):
     if movie_name:
         # Fetching data from OMDb API
-        movie_data = fetch_movie_data(movie_name, api_key)
-        if movie_data['Response'] == 'True':
-            st.write(f"**Title:** {movie_data['Title']}")
-            st.write(f"**Year:** {movie_data['Year']}")
-            st.write(f"**Genre:** {movie_data['Genre']}")
-            st.write(f"**Plot:** {movie_data['Plot']}")
-            st.write(f"**Rating:** {movie_data['imdbRating']}")
-            
-            # Clean and search for the movie in the CSV
-            movie_name_clean = movie_data['Title'].strip().lower()
+        movie_data = fetch_movie_data(movie_name.strip(), api_key)
+
+        if movie_data.get('Response') == 'True':  # Check if response is valid
+            st.write(f"**Title:** {movie_data.get('Title', 'N/A')}")
+            st.write(f"**Year:** {movie_data.get('Year', 'N/A')}")
+            st.write(f"**Genre:** {movie_data.get('Genre', 'N/A')}")
+            st.write(f"**Plot:** {movie_data.get('Plot', 'N/A')}")
+            st.write(f"**Rating:** {movie_data.get('imdbRating', 'N/A')}")
+
+            # Normalize the movie title for matching
+            movie_name_clean = movie_data.get('Title', '').strip().lower()
             matching_movies = movies_data[movies_data['title'].str.lower().str.strip() == movie_name_clean]
-            # Finding sequels from the OMDb API
-            sequels_from_api = []
-            if 'Related' in movie_data and movie_data['Related']:
-                sequels_from_api = movie_data['Related'].split(", ")
-            else:
-                sequels_from_api = []  # If the API doesn't provide sequels
-            # Finding sequels from CSV file based on the title
+
+            # Handling sequels (OMDb API doesn't provide a direct field)
+            sequels_from_api = movie_data.get('Related', '').split(", ") if 'Related' in movie_data else []
             sequels_from_csv = movies_data[movies_data['title'].str.contains(movie_name, case=False, na=False)]['title'].tolist()
-            
-            # Check if exact match is found
-            if matching_movies.empty:
-                st.write(f"Exact movie '{movie_data['Title']}' not found in the local dataset.")
-                # Display sequels found from API and CSV
-                combined_sequels = set(sequels_from_api + sequels_from_csv)
-                if combined_sequels:
-                    st.write(f"**Sequels/Related Movies (from API and CSV):**")
-                    for i, title in enumerate(combined_sequels):
-                        st.write(f"{i + 1}. {title}")
-                else:
-                    st.write("No sequels found from the API or CSV.")
-                # Collect genre recommendations based on genres from the API
-                movie_genres = movie_data['Genre'].split(', ')
-                genre_filter = '|'.join(genre.strip() for genre in movie_genres)
-                genre_recommendations = set(movies_data[movies_data['genres'].str.contains(genre_filter, case=False, na=False)]['title'])
 
-                # Shuffle and display genre recommendations
+            # Combine and remove duplicates
+            combined_sequels = sorted(set(sequels_from_api + sequels_from_csv))
+
+            # Display sequels
+            if combined_sequels:
+                st.write(f"**Sequels/Related Movies:**")
+                for i, title in enumerate(combined_sequels):
+                    st.write(f"{i + 1}. {title}")
+            else:
+                st.write("No sequels found.")
+
+            # Genre-based recommendations
+            movie_genres = movie_data.get('Genre', '').split(', ')
+            if movie_genres and movie_genres[0]:
+                genre_filter = '|'.join([genre.strip() for genre in movie_genres])
+                genre_recommendations = sorted(set(movies_data[movies_data['genres'].str.contains(genre_filter, case=False, na=False)]['title']))
+
                 if genre_recommendations:
-                    st.write(f"**Other Recommendations in the genres ({', '.join(movie_genres)}):**")
-                    random_genre_recommendations = list(genre_recommendations)
-                    random.shuffle(random_genre_recommendations)
-                    for i, title in enumerate(random_genre_recommendations[:10]):
+                    st.write(f"**Recommendations in {', '.join(movie_genres)} Genre:**")
+                    random.shuffle(genre_recommendations)
+                    for i, title in enumerate(genre_recommendations[:10]):
                         st.write(f"{i + 1}. {title}")
                 else:
                     st.write("No genre-based recommendations found.")
             else:
-                # If an exact match is found, display recommendations based on similarity
-                index_of_the_movie = matching_movies.index[0]
-                # Displays the sequels found from API and CSV
-                combined_sequels = set(sequels_from_api + sequels_from_csv)
-                if combined_sequels:
-                    st.write(f"**Sequels/Related Movies (from API):**")
-                    for i, title in enumerate(sequels_from_api):
-                        st.write(f"{i + 1}. {title}")
-                    st.write(f"**Sequels/Related Movies (from CSV):**")
-                    for i, title in enumerate(sequels_from_csv):
-                        st.write(f"{i + 1}. {title}")
-                else:
-                    st.write("No sequels found from the API or CSV.")
-                # Getting genre recommendations based on the genre of the input movie
-                movie_genres = movie_data['Genre'].split(', ')
-                genre_filter = '|'.join(genre.strip() for genre in movie_genres)
-                genre_recommendations = set(movies_data[movies_data['genres'].str.contains(genre_filter, case=False, na=False)]['title'])
-
-                # Displays the final list of genre-based recommended movies
-                if genre_recommendations:
-                    st.write(f"**Other Recommendations in the genres ({', '.join(movie_genres)}):**")
-                    random_genre_recommendations = list(genre_recommendations)
-                    random.shuffle(random_genre_recommendations)
-                    for i, title in enumerate(random_genre_recommendations[:10]):
-                        st.write(f"{i + 1}. {title}")
-                else:
-                    st.write("No genre-based recommendations found.")
+                st.write("No genre information available.")
         else:
             st.write("No movie found on OMDb API. Please try another name.")
     else:
